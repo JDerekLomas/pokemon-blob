@@ -78,6 +78,14 @@ Snapshots of the playable game are in [versions/](versions/).
 - Camera follows the player when they drive movement
 - `versions/` archive + git repo so every iteration from here on is preserved playably
 
+## v7 · Keyboard fix + spread foes
+
+> "you can't move if you... and you can also not attack. And you can also not move in the city. and the bad guys have to be spread around the city. when you clicked on the arrow keys, it didn't seem like you did it right from last time. So make it better."
+
+- Keyboard listener now runs in capture phase — SPACE no longer re-triggers the last clicked button, arrow keys aren't eaten by focused buttons
+- Every button click immediately blurs itself, releasing focus back to the document
+- Foes spawn with randomized z (±6 units) and a bit of x jitter — spread across the city instead of lined up at z=0
+
 ---
 
 ## How to use this log

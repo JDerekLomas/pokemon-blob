@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta name="theme-color" content="#9be7ff" />
+    <title>Blob Buddy</title>
+    <style>
+      :root { color-scheme: light; }
+      html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #9be7ff; font-family: system-ui, -apple-system, sans-serif; }
+      #app { position: fixed; inset: 0; }
+      canvas { display: block; touch-action: none; }
+      #hud {
+        position: fixed; top: 12px; left: 12px; right: 12px;
+        display: flex; justify-content: space-between; align-items: flex-start;
+        pointer-events: none; z-index: 5;
+      }
+      .badge {
+        background: rgba(255,255,255,0.85);
+        border: 3px solid #fff;
+        border-radius: 18px;
+        padding: 8px 14px;
+        font-weight: 800;
+        font-size: 20px;
+        color: #333;
+        box-shadow: 0 4px 0 rgba(0,0,0,0.12);
+      }
+      #fruit-picker {
+        position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+        display: flex; gap: 10px; z-index: 10;
+        background: rgba(255,255,255,0.6);
+        padding: 10px 14px; border-radius: 999px;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+      }
+      .fruit-btn {
+        width: 54px; height: 54px; border-radius: 50%;
+        border: 4px solid #fff; cursor: pointer;
+        font-size: 28px; display: grid; place-items: center;
+        box-shadow: 0 4px 0 rgba(0,0,0,0.15);
+        transition: transform 80ms ease;
+        background: #fff;
+      }
+      .fruit-btn:active { transform: scale(0.92); }
+      .fruit-btn.selected { outline: 4px solid #ffd54a; outline-offset: 2px; }
+      #help {
+        position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+        background: rgba(255,255,255,0.85); padding: 8px 14px; border-radius: 14px;
+        font-weight: 700; color: #444; font-size: 14px; pointer-events: none;
+        opacity: 0; transition: opacity 200ms ease;
+      }
+      #help.show { opacity: 1; }
+      #start {
+        position: fixed; inset: 0; display: grid; place-items: center;
+        background: linear-gradient(160deg, #9be7ff, #ffb3e6);
+        z-index: 100; cursor: pointer;
+      }
+      #start .card {
+        background: #fff; padding: 28px 32px; border-radius: 28px;
+        text-align: center; box-shadow: 0 10px 0 rgba(0,0,0,0.1);
+      }
+      #start h1 { margin: 0 0 6px; font-size: 44px; color: #ff5fa2; }
+      #start p { margin: 0 0 14px; font-weight: 700; color: #555; }
+      #start button {
+        background: #ffd54a; border: none; border-radius: 999px;
+        padding: 14px 28px; font-size: 22px; font-weight: 900;
+        cursor: pointer; box-shadow: 0 5px 0 #d4a300;
+      }
+      #flash {
+        position: fixed; inset: 0; background: #fff; opacity: 0;
+        pointer-events: none; z-index: 90; transition: opacity 280ms ease-out;
+      }
+      #flash.on { opacity: 0.85; transition: opacity 60ms ease-in; }
+      #stage-badge {
+        position: fixed; top: 60px; left: 12px;
+        background: rgba(255,255,255,0.9); border: 3px solid #fff;
+        border-radius: 16px; padding: 6px 12px;
+        font-weight: 800; font-size: 16px; color: #333;
+        box-shadow: 0 4px 0 rgba(0,0,0,0.12);
+        display: none;
+      }
+      #stage-badge.show { display: block; }
+      #battle-btn {
+        position: fixed; top: 12px; right: 50%; transform: translateX(50%);
+        background: linear-gradient(135deg, #ff3366, #ff7733);
+        color: white; font-weight: 900; font-size: 20px;
+        border: 4px solid white; border-radius: 22px;
+        padding: 12px 22px; cursor: pointer;
+        box-shadow: 0 6px 0 rgba(0,0,0,0.25);
+        z-index: 20; display: none;
+        animation: battle-pulse 1s infinite ease-in-out;
+      }
+      #battle-btn.show { display: block; }
+      @keyframes battle-pulse {
+        0%, 100% { transform: translateX(50%) scale(1); }
+        50% { transform: translateX(50%) scale(1.08); }
+      }
+      #battle-ui {
+        position: fixed; inset: 0; pointer-events: none; z-index: 15;
+        display: none;
+      }
+      #battle-ui.show { display: block; }
+      .hp-wrap {
+        position: absolute; top: 16px;
+        background: rgba(255,255,255,0.9); padding: 10px 14px;
+        border-radius: 16px; border: 3px solid #fff; min-width: 180px;
+        box-shadow: 0 4px 0 rgba(0,0,0,0.15);
+      }
+      .hp-wrap.player { left: 16px; }
+      #foe-list {
+        position: absolute; top: 16px; right: 16px;
+        display: flex; flex-direction: column; gap: 8px;
+        max-width: 220px;
+      }
+      .foe-row {
+        background: rgba(255,255,255,0.9); padding: 8px 12px;
+        border-radius: 14px; border: 3px solid #fff;
+        box-shadow: 0 4px 0 rgba(0,0,0,0.15);
+        transition: opacity 350ms ease, transform 350ms ease;
+      }
+      .foe-row.active { border-color: #ff3366; transform: scale(1.04); }
+      .foe-row.dead { opacity: 0.3; transform: scale(0.85); filter: grayscale(1); }
+      .foe-row .hp-name { font-size: 14px; }
+      .foe-row .hp-bar { height: 10px; margin-top: 4px; }
+      .hp-name { font-weight: 900; font-size: 16px; color: #333; }
+      .hp-bar {
+        height: 14px; background: #eee; border-radius: 999px; margin-top: 6px;
+        overflow: hidden; border: 2px solid #333;
+      }
+      .hp-fill {
+        height: 100%; background: linear-gradient(90deg, #4ec96a, #ffd54a 60%, #ff3366);
+        width: 100%; transition: width 320ms ease;
+      }
+      #attack-bar {
+        position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+        display: flex; gap: 14px;
+        background: rgba(255,255,255,0.85); padding: 12px 16px;
+        border-radius: 22px; pointer-events: auto;
+        backdrop-filter: blur(8px);
+      }
+      .atk-btn {
+        background: #fff; border: 4px solid #fff; border-radius: 18px;
+        padding: 10px 16px; font-size: 24px; font-weight: 900; cursor: pointer;
+        box-shadow: 0 5px 0 rgba(0,0,0,0.15);
+        transition: transform 80ms ease;
+      }
+      .atk-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,0.15); }
+      .atk-btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+      .atk-btn .lbl { display: block; font-size: 13px; color: #555; margin-top: 2px; }
+      #battle-msg {
+        position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        background: rgba(0,0,0,0.7); color: white;
+        padding: 24px 36px; border-radius: 22px;
+        font-weight: 900; font-size: 32px; text-align: center;
+        display: none; pointer-events: auto;
+      }
+      #battle-msg.show { display: block; }
+      #battle-msg button {
+        display: block; margin: 16px auto 0;
+        background: #ffd54a; color: #333; border: none;
+        padding: 10px 20px; border-radius: 999px; font-weight: 900;
+        font-size: 18px; cursor: pointer; box-shadow: 0 4px 0 #d4a300;
+      }
+      #powers {
+        position: fixed; right: 12px; top: 60px;
+        display: flex; flex-direction: column; gap: 8px;
+        z-index: 12;
+      }
+      .power {
+        width: 56px; height: 56px; border-radius: 18px;
+        background: rgba(255,255,255,0.92);
+        border: 4px solid #fff;
+        font-size: 28px; cursor: pointer; display: grid; place-items: center;
+        box-shadow: 0 4px 0 rgba(0,0,0,0.15);
+        transition: transform 80ms ease, opacity 200ms ease;
+        position: relative;
+        padding: 0;
+      }
+      .power:active { transform: scale(0.9); }
+      .power.locked { opacity: 0.35; cursor: not-allowed; filter: grayscale(0.7); }
+      .power.locked::after {
+        content: '🔒'; position: absolute; bottom: -6px; right: -6px;
+        font-size: 16px; background: white; border-radius: 50%;
+        width: 22px; height: 22px; display: grid; place-items: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      }
+      .power.cooldown { opacity: 0.4; cursor: wait; }
+      #transform-badge {
+        position: fixed; top: 100px; left: 50%; transform: translateX(-50%);
+        background: rgba(0,0,0,0.78); color: #fff;
+        padding: 10px 18px; border-radius: 22px;
+        font-weight: 900; font-size: 18px;
+        border: 3px solid #fff;
+        display: none; z-index: 20;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+      }
+      #transform-badge.show { display: block; }
+      #keys-hint {
+        position: fixed; bottom: 90px; left: 12px;
+        background: rgba(255,255,255,0.85); color: #333;
+        padding: 6px 12px; border-radius: 14px;
+        font-weight: 700; font-size: 13px;
+        opacity: 0; transition: opacity 400ms ease;
+        pointer-events: none; z-index: 12;
+      }
+      #keys-hint.show { opacity: 1; }
+      #dpad {
+        position: fixed; bottom: 14px; left: 14px;
+        display: grid; justify-items: center; gap: 4px;
+        z-index: 14; touch-action: none; user-select: none;
+      }
+      .dpad-row { display: flex; gap: 60px; }
+      .dbtn {
+        width: 56px; height: 56px; border-radius: 14px;
+        background: rgba(255,255,255,0.82);
+        border: 4px solid #fff;
+        font-size: 22px; font-weight: 900; color: #333;
+        cursor: pointer; box-shadow: 0 4px 0 rgba(0,0,0,0.18);
+        display: grid; place-items: center;
+        touch-action: none; user-select: none;
+        padding: 0;
+      }
+      .dbtn:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,0.18); background: #fff; }
+      #screen-attack {
+        position: fixed; bottom: 24px; right: 24px;
+        width: 84px; height: 84px; border-radius: 50%;
+        background: linear-gradient(135deg, #ff3366, #ff7733);
+        color: white; font-size: 38px;
+        border: 5px solid #fff;
+        box-shadow: 0 6px 0 rgba(0,0,0,0.22);
+        cursor: pointer; z-index: 14;
+        touch-action: none; user-select: none;
+        display: grid; place-items: center;
+        padding: 0;
+      }
+      #screen-attack:active { transform: translateY(3px); box-shadow: 0 3px 0 rgba(0,0,0,0.22); }
+      /* on small/portrait screens, shrink picker so it doesn't collide */
+      @media (max-width: 600px) {
+        #fruit-picker { transform: translateX(-50%) scale(0.85); bottom: 110px; }
+        #keys-hint { bottom: 180px; }
+        #powers { top: 70px; right: 8px; gap: 6px; }
+        .power { width: 44px; height: 44px; font-size: 22px; }
+        .hp-wrap { min-width: 130px; padding: 6px 10px; }
+        #foe-list { max-width: 150px; }
+      }
+      .power.flash { animation: power-flash 400ms ease-out; }
+      @keyframes power-flash {
+        0% { box-shadow: 0 0 0 0 #fff, 0 4px 0 rgba(0,0,0,0.15); }
+        50% { box-shadow: 0 0 30px 10px #ffd54a, 0 4px 0 rgba(0,0,0,0.15); }
+        100% { box-shadow: 0 0 0 0 #fff, 0 4px 0 rgba(0,0,0,0.15); }
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+          "cannon-es": "https://unpkg.com/cannon-es@0.20.0/dist/cannon-es.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div id="flash"></div>
+    <div id="hud">
+      <div class="badge" id="snacks">🍓 0</div>
+      <div class="badge" id="blocks">🧱 0</div>
+    </div>
+    <div id="stage-badge">Buddy</div>
+    <div id="transform-badge"></div>
+    <div id="keys-hint">🎮 Arrows / WASD move · SPACE attacks</div>
+    <button id="battle-btn">⚔️ BATTLE!</button>
+    <div id="battle-ui">
+      <div class="hp-wrap player">
+        <div class="hp-name" id="player-name">Buddy</div>
+        <div class="hp-bar"><div class="hp-fill" id="player-hp"></div></div>
+      </div>
+      <div id="foe-list"></div>
+      <div id="attack-bar">
+        <button class="atk-btn" data-atk="quick">🍓<span class="lbl">Quick</span></button>
+        <button class="atk-btn" data-atk="power">🍊<span class="lbl">Power</span></button>
+        <button class="atk-btn" data-atk="super">💥<span class="lbl">Super</span></button>
+      </div>
+      <div id="battle-msg"></div>
+    </div>
+    <div id="powers">
+      <button class="power locked" data-power="jump"  title="Jump">🦘</button>
+      <button class="power locked" data-power="dash"  title="Dash">⚡</button>
+      <button class="power locked" data-power="poop"  title="Poop">💩</button>
+      <button class="power locked" data-power="stomp" title="Stomp">⭐</button>
+      <button class="power locked" data-power="beam"  title="Fruit Beam">🌈</button>
+      <button class="power locked" data-power="hug"   title="Mega Hug">💖</button>
+    </div>
+    <div id="dpad">
+      <button class="dbtn" data-dir="up">▲</button>
+      <div class="dpad-row">
+        <button class="dbtn" data-dir="left">◀</button>
+        <button class="dbtn" data-dir="right">▶</button>
+      </div>
+      <button class="dbtn" data-dir="down">▼</button>
+    </div>
+    <button id="screen-attack" title="Attack">⚔️</button>
+    <div id="help">Tap anywhere to toss!</div>
+    <div id="fruit-picker">
+      <button class="fruit-btn selected" data-fruit="strawberry">🍓</button>
+      <button class="fruit-btn" data-fruit="blueberry">🫐</button>
+      <button class="fruit-btn" data-fruit="orange">🍊</button>
+      <button class="fruit-btn" data-fruit="grape">🍇</button>
+      <button class="fruit-btn" data-fruit="block">🧱</button>
+    </div>
+    <div id="start">
+      <div class="card">
+        <h1>Blob Buddy</h1>
+        <p>Toss fruit · Stack blocks · Play!</p>
+        <button>Let's Play</button>
+      </div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
