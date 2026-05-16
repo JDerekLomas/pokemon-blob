@@ -86,6 +86,15 @@ Snapshots of the playable game are in [versions/](versions/).
 - Every button click immediately blurs itself, releasing focus back to the document
 - Foes spawn with randomized z (±6 units) and a bit of x jitter — spread across the city instead of lined up at z=0
 
+## v8 · Arena lighting
+
+> "the pokebattle is super dark cant see anything"
+
+- Sky/fog lightened from near-black `#07060f` to a navy `#1a1a35`; fog pushed back to 18-55 units
+- Hemi light 0.18 → 0.55 (cool moonlight), sun 0.45 → 0.95
+- Streetlamps: 7 → 10, brighter (1.6 → 2.6 intensity), longer range (14 → 18)
+- New follow-light directly above the player — you can never be lost in shadow
+
 ---
 
 ## How to use this log

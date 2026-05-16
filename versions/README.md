@@ -11,6 +11,7 @@ Prompts that drove each version are in [/Users/dereklomas/max/PROMPTS.md](../PRO
 |----|-----|-------------------|
 | v6 | `v6-cards-keyboard-mobile/` | Pokemon cards transform you · Arrow keys / WASD + SPACE attack · Mobile D-pad |
 | v7 | `v7-keyboard-fix/` | Keyboard actually works (capture-phase + blur fix) · Foes spread across the city |
+| v8 | `v8-arena-lighting/` | Battle arena brightened — moonlight, 10 streetlamps, follow-light on player |
 
 Earlier iterations (v1–v5) were built into the same files before the version
 archive existed. From v6 on, every major change gets a new snapshot.
